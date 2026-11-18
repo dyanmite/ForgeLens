@@ -19,7 +19,7 @@ ForgeLens finds the right code in repositories larger than a context window, mak
 
 | Capability | How ForgeLens does it |
 |---|---|
-| **Inline edit** | Select code → `Ctrl+Shift+K` → instruction. The rewrite streams from TrueForge and appears **in the editor** as a diff: removed lines red, new lines green, **Accept / Reject on every hunk** (CodeLens) plus Accept all `Ctrl+Shift+Enter` / Reject all `Ctrl+Shift+Backspace`. |
+| **Inline edit** | Select code → `Ctrl+Alt+K` → instruction. The rewrite streams from TrueForge and appears **in the editor** as a diff: removed lines red, new lines green, **Accept / Reject on every hunk** (CodeLens) plus Accept all `Ctrl+Shift+Enter` / Reject all `Ctrl+Shift+Backspace`. |
 | **Agent mode** | Side panel. One request drives a TrueForge agent through the editor's MCP tools (repo map, search, symbols, read, propose edit, run command) until done. It finds the files itself. |
 | **Context assembly** | `@file` / `@symbol` mentions + automatic BM25 retrieval over symbol-sized chunks, **under a token budget**, with test/doc companion expansion. A **Context ledger** shows every snippet chosen, its tokens and *why*; every file the agent reads is added with the agent's stated reason. |
 | **Diff review** | Each `propose_edit` pauses TrueForge for approval and is rendered as per-hunk review cards + VS Code's native diff. Only accepted hunks are written. Applied changes are undoable (`Undo last`, `Revert run`, and plain `Ctrl+Z`). |
@@ -81,12 +81,12 @@ python -m venv .venv
 echo ".venv/" >> .git/info/exclude           # keep git status clean
 ```
 
-**A — Inline edit.** Open `src/flask/helpers.py`, select `get_debug_flag`, `Ctrl+Shift+K`, paste the instruction, review hunks, accept. Verify:
+**A — Inline edit.** Open `src/flask/helpers.py`, select `get_debug_flag`, `Ctrl+Alt+K`, paste the instruction, review hunks, accept. Verify:
 ```bash
 FLASK_DEBUG=off .venv/Scripts/python -c "from flask.helpers import get_debug_flag; print(get_debug_flag())"   # False
 ```
 
-**B — Agent mode.** ForgeLens panel (`Ctrl+Shift+L`), paste the instruction with no files named. Watch the Context ledger, review each hunk, allow the test run. Click **TrueForge session ↗** to show turns and tool calls. Verify:
+**B — Agent mode.** ForgeLens panel (`Ctrl+Alt+L`), paste the instruction with no files named. Watch the Context ledger, review each hunk, allow the test run. Click **TrueForge session ↗** to show turns and tool calls. Verify:
 ```bash
 .venv/Scripts/python -m pytest tests/test_cli.py -q
 cd examples/tutorial && SECRET_KEY=x ../../.venv/Scripts/flask --app flaskr config

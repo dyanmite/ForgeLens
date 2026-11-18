@@ -77,9 +77,9 @@
     "keybindings": [
       {
         "command": "forgelens.inlineEdit",
-        "key": "ctrl+shift+k",
-        "mac": "cmd+shift+k",
-        "when": "editorTextFocus"
+        "key": "ctrl+alt+k",
+        "mac": "cmd+alt+k",
+        "when": "editorTextFocus && !editorReadonly"
       },
       {
         "command": "forgelens.cancel",
@@ -98,8 +98,8 @@
       },
       {
         "command": "forgelens.focusAgent",
-        "key": "ctrl+shift+l",
-        "mac": "cmd+shift+l"
+        "key": "ctrl+alt+l",
+        "mac": "cmd+alt+l"
       }
     ],
     "configuration": {

@@ -58,7 +58,7 @@
     { class: "empty" },
     el("div", { class: "logo" }, "◈ ForgeLens"),
     el("p", {}, "Describe a change. The agent finds the files itself, and every edit comes back to you hunk by hunk before it touches disk."),
-    el("p", { class: "hint" }, "Use @path/to/file or @symbol to pin context. Ctrl+Shift+K in an editor for inline edits.")
+    el("p", { class: "hint" }, "Use @path/to/file or @symbol to pin context. Ctrl+Alt+K in an editor for inline edits.")
   );
   log.append(empty);
 

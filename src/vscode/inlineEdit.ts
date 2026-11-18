@@ -1,4 +1,4 @@
-// Inline edit: select code, Ctrl+Shift+K, type an instruction. The rewrite streams
+// Inline edit: select code, Ctrl+Alt+K, type an instruction. The rewrite streams
 // from TrueForge, then is shown IN the editor as a per-hunk diff (removed lines
 // red, proposed lines green, CodeLens "Accept | Reject" on every hunk).
 //
