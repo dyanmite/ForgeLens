@@ -1,0 +1,168 @@
+{
+  "name": "forgelens",
+  "displayName": "ForgeLens — coding agent on TrueForge",
+  "description": "Editor-native coding agent whose loop runs on TrueForge. Inline edits, multi-file agent mode, budgeted context assembly, per-hunk review, automatic model fallback.",
+  "version": "0.1.0",
+  "publisher": "forgelens",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "forgelens",
+          "title": "ForgeLens",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "forgelens": [
+        {
+          "type": "webview",
+          "id": "forgelens.agentView",
+          "name": "Agent"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "forgelens.inlineEdit",
+        "title": "ForgeLens: Inline Edit Selection"
+      },
+      {
+        "command": "forgelens.cancel",
+        "title": "ForgeLens: Cancel Generation"
+      },
+      {
+        "command": "forgelens.acceptAll",
+        "title": "ForgeLens: Accept All Inline Hunks"
+      },
+      {
+        "command": "forgelens.rejectAll",
+        "title": "ForgeLens: Reject All Inline Hunks"
+      },
+      {
+        "command": "forgelens.undoLast",
+        "title": "ForgeLens: Undo Last Applied Change"
+      },
+      {
+        "command": "forgelens.revertRun",
+        "title": "ForgeLens: Revert Last Agent Run"
+      },
+      {
+        "command": "forgelens.openSession",
+        "title": "ForgeLens: Open TrueForge Session"
+      },
+      {
+        "command": "forgelens.reconnect",
+        "title": "ForgeLens: Reconnect to TrueForge"
+      },
+      {
+        "command": "forgelens.focusAgent",
+        "title": "ForgeLens: Focus Agent Panel"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "forgelens.inlineEdit",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "forgelens.cancel",
+        "key": "escape",
+        "when": "forgelens.generating"
+      },
+      {
+        "command": "forgelens.acceptAll",
+        "key": "ctrl+shift+enter",
+        "when": "editorTextFocus && forgelens.inlineReview"
+      },
+      {
+        "command": "forgelens.rejectAll",
+        "key": "ctrl+shift+backspace",
+        "when": "editorTextFocus && forgelens.inlineReview"
+      },
+      {
+        "command": "forgelens.focusAgent",
+        "key": "ctrl+shift+l",
+        "mac": "cmd+shift+l"
+      }
+    ],
+    "configuration": {
+      "title": "ForgeLens",
+      "properties": {
+        "forgelens.trueforgeUrl": {
+          "type": "string",
+          "default": "http://localhost:8790",
+          "description": "Base URL of the local TrueForge server (npx @truefoundry/trueforge@latest)."
+        },
+        "forgelens.models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "google-gemini/gemini-3-5-flash",
+            "google-gemini/gemini-3-5-flash-lite",
+            "groq/openai-gpt-oss-120b"
+          ],
+          "description": "Models configured in TrueForge (provider/model). The first is primary; the rest are automatic fallbacks, tried in order."
+        },
+        "forgelens.retriesPerModel": {
+          "type": "number",
+          "default": 2,
+          "description": "Retries (with exponential backoff) for transient model errors before falling back to the next model."
+        },
+        "forgelens.contextBudgetTokens": {
+          "type": "number",
+          "default": 6000,
+          "description": "Token budget for automatically retrieved context attached to each agent request."
+        },
+        "forgelens.mcpPort": {
+          "type": "number",
+          "default": 7391,
+          "description": "Port for the local editor MCP server (bound to 127.0.0.1 only). 0 = pick a free port."
+        },
+        "forgelens.saveOnAccept": {
+          "type": "boolean",
+          "default": true,
+          "description": "Save the file after all inline hunks are resolved, if it had no unsaved changes before the edit."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node scripts/build.mjs && node --test test/",
+    "package": "node scripts/build.mjs && vsce package --no-dependencies --allow-missing-repository"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@truefoundry/trueforge-sdk": "^0.185.0",
+    "diff": "^9.0.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^4.1.1",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}

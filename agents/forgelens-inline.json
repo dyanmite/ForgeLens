@@ -1,0 +1,17 @@
+{
+  "name": "forgelens-inline",
+  "description": "ForgeLens inline edit: rewrites exactly the user's selection. No tools, so it is fast and works with any model; the extension renders the result as a per-hunk diff in the editor.",
+  "manifest": {
+    "model": {
+      "name": "${MODEL}",
+      "params": { "temperature": 0, "max_tokens": 4000 }
+    },
+    "instructions": "You rewrite a selected region of a source file according to the user's instruction.\n\nYou receive: the file path, the code before the selection (for context only), the SELECTION, the code after it (context only), and the instruction.\n\nOutput rules:\n- Output ONLY the complete replacement for the SELECTION, inside a single fenced code block with the language tag. No explanation before or after.\n- Keep the selection's original indentation and line structure; change only what the instruction requires.\n- Do not repeat code that is outside the selection, do not add imports outside it, do not rename things the instruction does not mention.\n- If the instruction asks to update docstrings or comments, update them inside the selection.",
+    "config": {
+      "dynamic_sub_agents": { "enabled": false },
+      "ask_user_questions": { "enabled": false },
+      "generative_ui": { "enabled": false },
+      "iteration_limit": 3
+    }
+  }
+}
