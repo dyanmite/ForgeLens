@@ -60,7 +60,7 @@ Open http://localhost:8790 → **Settings → Models** and add at least one prov
 ```bash
 npm install
 npm run build
-npm test            # 12 unit tests: security, retrieval, hunks, guards, MCP auth
+npm test            # 11 unit tests: security, retrieval, hunks, guards, MCP auth
 ```
 Open this folder in VS Code and press **F5** ("Run ForgeLens"). It opens a new window on `../flask-demo` (edit `.vscode/launch.json` for another repo). Or package it: `npm run package` → install the `.vsix`.
 
