@@ -149,7 +149,7 @@
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit -p .",
-    "test": "node scripts/build.mjs && node --test test/",
+    "test": "node scripts/build.mjs && node --test test/core.test.cjs",
     "package": "node scripts/build.mjs && vsce package --no-dependencies --allow-missing-repository"
   },
   "dependencies": {

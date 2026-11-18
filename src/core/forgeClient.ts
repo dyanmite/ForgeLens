@@ -9,7 +9,7 @@
 // tool results are preserved because the session is preserved.
 import * as fs from "fs";
 import * as path from "path";
-import { TrueForge } from "@truefoundry/trueforge-sdk";
+import { TrueForge, TrueForgeApi } from "@truefoundry/trueforge-sdk";
 import { SERVER_NAME } from "./mcpServer";
 
 export type AgentKind = "agent" | "inline";
@@ -70,9 +70,9 @@ export class ForgeClient {
     this.agentFiles = { agent: load("forgelens-agent.json"), inline: load("forgelens-inline.json") };
   }
 
-  spec(kind: AgentKind, model: string): TrueForge.AgentSpec {
+  spec(kind: AgentKind, model: string): TrueForgeApi.AgentSpec {
     const raw = JSON.parse(JSON.stringify(this.agentFiles[kind].manifest).split("${MODEL}").join(model));
-    return camelize(raw) as TrueForge.AgentSpec;
+    return camelize(raw) as TrueForgeApi.AgentSpec;
   }
 
   async ping(): Promise<void> {
@@ -97,7 +97,7 @@ export class ForgeClient {
         description: "ForgeLens VS Code editor tools (read, search, symbols, reviewed edits, allowlisted commands). Local only.",
         url,
         auth: { type: "header", headers: { Authorization: `Bearer ${token}` } },
-      } as TrueForge.McpServerManifest,
+      } as TrueForgeApi.McpServerManifest,
     });
   }
 
@@ -126,8 +126,8 @@ export class ForgeClient {
     try {
       const page = await this.client.sessions.listEvents(sessionId);
       let n = 0;
-      for await (const item of page as AsyncIterable<{ event: TrueForge.SessionEvent }>) {
-        const ev = item.event as { type: string; threadId?: string; toolCalls?: TrueForge.ToolCall[] };
+      for await (const item of page as AsyncIterable<{ event: TrueForgeApi.SessionEvent }>) {
+        const ev = item.event as { type: string; threadId?: string; toolCalls?: TrueForgeApi.ToolCall[] };
         if (ev.type === "model.message") for (const tc of ev.toolCalls ?? []) if (!calls.has(tc.id)) calls.set(tc.id, unwrapCall(tc, ev.threadId ?? "main"));
         if (++n > 400) break;
       }
@@ -236,7 +236,7 @@ export class ForgeClient {
     const onAbort = () => void this.cancel(sessionId);
     signal.addEventListener("abort", onAbort, { once: true });
     try {
-      for await (const ev of stream as AsyncIterable<TrueForge.TurnStreamingEvent>) {
+      for await (const ev of stream as AsyncIterable<TrueForgeApi.TurnStreamingEvent>) {
         switch (ev.type) {
           case "turn.created":
             turnId = ev.turnId;
@@ -312,7 +312,7 @@ export class ForgeClient {
 
 class TurnError extends Error {}
 
-export function unwrapCall(tc: TrueForge.ToolCall, threadId: string): PendingCall {
+export function unwrapCall(tc: TrueForgeApi.ToolCall, threadId: string): PendingCall {
   let args: Record<string, unknown> = {};
   try {
     args = tc.function.arguments ? JSON.parse(tc.function.arguments) : {};
