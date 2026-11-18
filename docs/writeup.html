@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ForgeLens — Round 1 write-up</title>
+<style>
+  @page { size: A4; margin: 11mm 13mm 11mm 13mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 9.1pt; line-height: 1.3; color: #1b1f24; margin: 0; }
+  h1 { font-size: 17pt; margin: 0 0 1mm; letter-spacing: -0.2px; }
+  .sub { color: #57606a; margin: 0 0 4mm; font-size: 9.4pt; }
+  h2 { font-size: 11.2pt; margin: 3.2mm 0 1.2mm; padding-bottom: 0.8mm; border-bottom: 1.4px solid #d0d7de; color: #0b3d91; }
+  p { margin: 0 0 1.6mm; }
+  ul { margin: 0 0 1.6mm; padding-left: 5mm; }
+  li { margin: 0 0 0.6mm; }
+  table { border-collapse: collapse; width: 100%; margin: 0.6mm 0 1.8mm; font-size: 8.9pt; }
+  th, td { border: 1px solid #d0d7de; padding: 1.1mm 1.6mm; vertical-align: top; text-align: left; }
+  th { background: #f3f6f9; font-weight: 600; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f3f6f9; padding: 0 0.6mm; border-radius: 2px; }
+  pre { font-family: Consolas, "Courier New", monospace; font-size: 7.6pt; line-height: 1.18; background: #f6f8fa; border: 1px solid #d0d7de; padding: 1.8mm 2.2mm; margin: 0.6mm 0 1.8mm; white-space: pre; }
+  .todo { background: #fff3bf; padding: 0 0.8mm; }
+  .k { color: #57606a; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+</style>
+</head>
+<body>
+
+<h1>ForgeLens: an editor-native coding agent on TrueForge</h1>
+<p class="sub">TrueFoundry Forge-a-thon, Techfest IIT Bombay 2026 · Round 1 · Repo:
+<code>github.com/dyanmite/TrueFoundry-TM-E5DA4ED3692</code> · Team ID <span class="todo">TM-E5DA4ED3692</span></p>
+
+<h2>1. Team</h2>
+<table>
+  <tr><th style="width:30%">Name</th><th style="width:25%">GitHub</th><th>Role</th></tr>
+  <tr><td class="todo">[Member 1]</td><td>@dyanmite</td><td class="todo">[role]</td></tr>
+  <tr><td class="todo">[Member 2]</td><td class="todo">@[handle]</td><td class="todo">[role]</td></tr>
+  <tr><td class="todo">[Member 3]</td><td class="todo">@[handle]</td><td class="todo">[role]</td></tr>
+  <tr><td class="todo">[Member 4]</td><td class="todo">@[handle]</td><td class="todo">[role]</td></tr>
+</table>
+
+<h2>2. Starting point</h2>
+<p><b>From scratch, not a fork.</b> We wrote the extension, the MCP server, the retrieval and the review layer ourselves. The only dependencies are libraries: <code>@truefoundry/trueforge-sdk</code> (talks to TrueForge), <code>@modelcontextprotocol/sdk</code> (serves the editor tools over MCP), <code>diff</code> (line diffs for hunks) and <code>zod</code> (tool schemas). The extension never calls a model provider itself. Every model call goes through TrueForge.</p>
+
+<h2>3. Architecture on TrueForge</h2>
+<pre>  VS Code · ForgeLens extension                          TrueForge (local mode, :8790)
+  ─────────────────────────────                          ─────────────────────────────
+  Agent panel  /  Inline edit (hunks + CodeLens)
+        │
+  ForgeClient  ── sessions · turns · SSE · cancel ────►  agent loop (forgelens-agent,
+  retry + backoff + model fallback (same session)        forgelens-inline)
+        ▲                                                approvals · sub-agents
+        └──────── tool.approval_required / allow|deny ── compaction · deferred tools
+                                                                │
+  Editor MCP server  127.0.0.1 · bearer token  ◄── MCP tool calls ──┘
+    repo_map · search_code · find_symbol · read_file · list_files
+    propose_edit* · propose_new_file* · run_command*      (* need approval)
+        │
+  RepoIndex (symbols, BM25) · ApprovalBook (per hunk) · guards · checkpoints</pre>
+<ul>
+  <li><b>TrueForge runs the agent loop.</b> On startup the extension registers its MCP server as the TrueForge connector <code>forgelens-editor</code> and syncs two agent definitions from <code>agents/</code> into the registry: <code>forgelens-agent</code> (agent mode) and <code>forgelens-inline</code> (inline edit, no tools). Each request is a TrueForge <b>session</b>. We stream its turn events (<code>model.message.delta</code>, <code>tool.response</code>, <code>thread.*</code>, <code>turn.done</code>) into the panel, and the panel links to the live session at <code>/sessions/&lt;id&gt;</code>.</li>
+  <li><b>TrueForge features we use:</b>
+    <ul>
+      <li><code>require_approval_for_tools</code> on every write and command tool. TrueForge pauses the turn (<code>tool.approval_required</code>), we show per-hunk review, and we resume with a <code>user.tool_approval</code> allow or deny that includes a reason.</li>
+      <li>Deferred tool loading (<code>preload:false</code> plus a preload list).</li>
+      <li><code>dynamic_sub_agents</code> for read-only exploration.</li>
+      <li>Context compaction at 60k input tokens, with large-tool-response handling.</li>
+      <li><code>iteration_limit</code> as a hard stop.</li>
+      <li><code>sessions.update</code> to swap the model in the <i>same</i> session when we fall back, so history is kept.</li>
+      <li><code>cancel</code> for Stop/Esc.</li>
+    </ul>
+  </li>
+  <li><b>Diff safety does not rely on trusting the model.</b> TrueForge approval is the first gate. The MCP write tool is the second: it writes only if an accepted-hunk decision exists for <i>that exact call</i> (hashed arguments), and only if the file has not changed since the review. It writes only the accepted hunks, as one atomic workspace edit per file, preserving CRLF. Each write is checkpointed, so we support <b>Undo last</b>, <b>Revert run</b> and plain <code>Ctrl+Z</code>. A cancelled run cannot leave half an edit, because nothing is written until a whole file's accepted hunks are applied.</li>
+  <li><b>Guards before review:</b>
+    <ul>
+      <li><code>old_text</code> must match exactly once. This blocks edits to code that does not exist, and the model gets the reason back.</li>
+      <li>Edited Python must still parse (<code>ast</code>).</li>
+      <li>Imports of names that are not in the index are flagged.</li>
+    </ul>
+  </li>
+  <li><b>Security:</b>
+    <ul>
+      <li>Workspace jail: no <code>..</code>, absolute or symlink escapes. <code>.git</code>, virtualenvs, <code>.env*</code>, keys and credential files are unreadable.</li>
+      <li>Secret-shaped strings are redacted from every tool result.</li>
+      <li>Commands: allowlist only (<code>pytest</code>, <code>flask</code>, read-only <code>git</code>/<code>pip</code>), spawned with no shell, stripped environment, timeout and output cap.</li>
+      <li>MCP endpoint: bound to 127.0.0.1, random bearer token per session, Host and Origin checks. TrueForge is started with <code>OUTBOUND_URL_ALLOWED_HOSTS=["127.0.0.1"]</code>, which allows exactly our endpoint and nothing else on the private network.</li>
+      <li>11 unit tests cover these checks.</li>
+    </ul>
+  </li>
+</ul>
+
+<h2>4. How context is selected</h2>
+<p><b>Index.</b> When the workspace opens we index it: Flask 3.1.3 has <b>211 files and 1,975 chunks, indexed in about 180 ms</b>. A file watcher keeps the index current. Chunks are symbol-sized: Python functions and classes with decorators and qualified names, and documentation sections by heading.</p>
+<p><b>The pack is built for every request under a token budget</b> (default 6,000 tokens, configurable). It is assembled in this order:</p>
+<ol style="margin:0 0 1.6mm; padding-left:5mm">
+  <li><code>@file</code> and <code>@symbol</code> mentions.</li>
+  <li>The top BM25 chunks. Path priors down-weight changelogs and tutorials.</li>
+  <li><b>Companion expansion:</b> for a source file, add its test file (<code>src/flask/cli.py → tests/test_cli.py</code>) and the docs page it belongs with (<code>docs/cli.rst</code>).</li>
+  <li>The rest by score, at most 3 chunks per file, dropping anything below 25% of the top score.</li>
+  <li>Items that miss the budget are passed as <b>pointers</b> (path, lines and why) so the agent can <code>read_file</code> them.</li>
+  <li>A compact <b>repo map</b> of the most relevant symbols, with its own budget.</li>
+</ol>
+<p><b>It is visible.</b> The panel's <b>Context ledger</b> shows every snippet with its tokens, its source (mention, retrieval, companion, pointer) and its <i>reason</i>, plus a budget bar. Every file the agent later reads is added to the ledger with the reason the agent gave; <code>read_file</code> requires one. Actual ledgers:</p>
+<table>
+  <tr><th style="width:12%">Task</th><th>Top of the ledger (6,000-token budget)</th><th style="width:16%">Used</th></tr>
+  <tr><td>A</td><td><code>helpers.py:28-33 get_debug_flag</code> · <code>cli.py _set_debug</code> · companions <code>tests/test_helpers.py</code>, <code>docs/cli.rst §Debug Mode</code></td><td>6,000 incl. 1,522 map</td></tr>
+  <tr><td>B</td><td><code>cli.py FlaskGroup</code> (where built-in commands are registered) · <code>config.py Config</code> · companions <code>tests/test_cli.py</code>, <code>docs/cli.rst</code> · 10 pointers (e.g. <code>sansio/app.py</code>)</td><td>5,904 incl. 1,519 map</td></tr>
+</table>
+<p>For Task B, no file is named in the instruction. The three files that must change (<code>src/flask/cli.py</code>, <code>tests/test_cli.py</code>, <code>docs/cli.rst</code>) were all in the pack before the model ran.</p>
+
+<h2>5. Model setup</h2>
+<table>
+  <tr><th style="width:36%">Model (via TrueForge)</th><th style="width:22%">Role</th><th>Notes / cost</th></tr>
+  <tr><td><code>google-gemini/gemini-3-5-flash</code></td><td>Primary</td><td>Google AI Studio key, set inside TrueForge. <span class="todo">[cost / tier]</span></td></tr>
+  <tr><td><code>google-gemini/gemini-3-5-flash-lite</code></td><td>Fallback 1</td><td>Same key. Separate quota, so it survives Flash rate limits.</td></tr>
+  <tr><td><code>groq/openai-gpt-oss-120b</code></td><td>Fallback 2</td><td>Custom OpenAI-compatible provider. The free tier's tokens-per-minute limit suits inline edits only.</td></tr>
+  <tr><td><code>unreachable/broken-model</code></td><td>Task C only</td><td>Custom provider at <code>127.0.0.1:59999</code>, a closed port that gives a real <code>ECONNREFUSED</code>.</td></tr>
+</table>
+<ul>
+  <li><b>Resilience policy:</b>
+    <ul>
+      <li>Transient errors (network, 5xx, 429) retry with exponential backoff (0.8s, 1.6s, longer for 429).</li>
+      <li>Auth, missing-model and daily-quota errors skip the retries.</li>
+      <li>Then ForgeLens falls back to the next model in the <b>same TrueForge session</b>. If the turn had already made progress, it continues instead of restarting.</li>
+      <li>Everything is async, so the editor stays responsive.</li>
+    </ul>
+  </li>
+  <li><b>Settings:</b> agent temperature 0.2 and 8k max output; inline temperature 0 and 4k. Models are switched with the <code>forgelens.models</code> setting with no code change. Any provider TrueForge supports works, including local models.</li>
+  <li><b>Measured:</b> in Task C the run went from failure, through retry and fallback, to a finished edit in about <b>4 s</b>, with <code>git status</code> clean throughout. <span class="todo">[Task B tokens / cost from the TrueForge session]</span></li>
+</ul>
+
+<h2>6. Scorecard with timestamps</h2>
+<table>
+  <tr><th style="width:9%">Item</th><th>What the video shows</th><th style="width:13%">Video time</th><th style="width:10%">Result</th></tr>
+  <tr><td>A1</td><td>Select <code>get_debug_flag</code>, Ctrl+Shift+K. The rewrite streams in and shows as red and green hunks in the buffer.</td><td class="todo">[0:00]</td><td>Pass</td></tr>
+  <tr><td>A2</td><td>Accept/Reject on each hunk. The docstring now lists 0, false, no, off, n.</td><td class="todo">[0:00]</td><td>Pass</td></tr>
+  <tr><td>A3</td><td><code>FLASK_DEBUG=off … print(get_debug_flag())</code> prints <code>False</code>. Undo last, then <code>git status</code> is clean.</td><td class="todo">[0:00]</td><td>Pass</td></tr>
+  <tr><td>B1</td><td>Context ledger: cli.py, tests and docs chosen without being named, with reasons and budget.</td><td class="todo">[0:00]</td><td class="todo">[ ]</td></tr>
+  <tr><td>B2</td><td>Per-hunk review cards for 3 files, one hunk rejected, accepted ones applied. Revert run.</td><td class="todo">[0:00]</td><td class="todo">[ ]</td></tr>
+  <tr><td>B3</td><td>Agent runs <code>pytest tests/test_cli.py -q</code> (approved), then <code>flask --help</code> and <code>flask config</code> showing <code>***</code>.</td><td class="todo">[0:00]</td><td class="todo">[ ]</td></tr>
+  <tr><td>B4</td><td>TrueForge session page: turns, tool calls, approvals, sub-agent thread.</td><td class="todo">[0:00]</td><td class="todo">[ ]</td></tr>
+  <tr><td>C</td><td>Broken endpoint: retry notices, automatic fallback, editor still usable, <code>git status</code> clean, Task A completes.</td><td class="todo">[0:00]</td><td>Pass</td></tr>
+</table>
+
+<h2>7. Tools used</h2>
+<ul>
+  <li><b>Runtime:</b> TrueForge (local mode), VS Code Extension API.</li>
+  <li><b>Libraries:</b> TrueForge SDK, MCP TypeScript SDK, jsdiff, zod.</li>
+  <li><b>Build and test:</b> TypeScript, esbuild, <code>node:test</code>.</li>
+  <li><b>Models:</b> Google Gemini, Groq.</li>
+  <li><b>Test target:</b> Flask 3.1.3 with pytest 9.0.2.</li>
+  <li><b>AI assistance:</b> Claude Code was used during development to write and review code. All design decisions and testing were the team's.</li>
+</ul>
+
+<h2>8. Known limitations</h2>
+<ul>
+  <li><b>Retrieval</b> is lexical (BM25 plus symbols and companions), not embeddings, so synonyms with no shared words can be missed. Pointers and the agent's own <code>search_code</code> reduce the risk.</li>
+  <li><b>Language support:</b> the symbol parser and syntax guard are Python-specific. Other languages are indexed in fixed line windows, with no symbols and no parse check.</li>
+  <li><b>Undo:</b> plain <code>Ctrl+Z</code> after an inline accept changes the buffer but does not save it. Use <i>Undo last</i>, which reverts and saves.</li>
+  <li><b>Free-tier limits:</b> Gemini Flash's free daily quota is too small for a full agent run. We rely on fallback, and on paid quota for the recorded Task B.</li>
+  <li><b>Sub-agents:</b> whether a sub-agent is used is the model's decision. It is enabled but not forced.</li>
+  <li><b>Platform:</b> tested on Windows 11. macOS and Linux should work, since paths and spawning are cross-platform, but we did not run them.</li>
+</ul>
+
+</body>
+</html>
