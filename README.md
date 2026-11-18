@@ -131,3 +131,13 @@ See the write-up for exact numbers. Development used Google Gemini (AI Studio AP
 
 ## Built with
 TypeScript, esbuild, `@truefoundry/trueforge-sdk`, `@modelcontextprotocol/sdk`, `diff` (jsdiff), `zod`. AI coding assistant used during development: Claude Code (declared per the rules).
+
+## Team
+Vellore Institute of Technology (VIT), Vellore
+
+| Name | GitHub |
+|---|---|
+| Jash Trehan | [@dyanmite](https://github.com/dyanmite) |
+| Gaddam Kaarthik Reddy | [@Kaarthik2907](https://github.com/Kaarthik2907) |
+| Navika Kapoor | [@nkapoor175](https://github.com/nkapoor175) |
+| Parthvi Mishra | [@Parthvi1707](https://github.com/Parthvi1707) |
