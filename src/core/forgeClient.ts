@@ -201,6 +201,13 @@ export class ForgeClient {
             if (status !== undefined && status >= 400 && status < 500 && !/model|provider/i.test(msg)) throw e;
           }
           failures.push(`${model}: ${msg}`);
+          // The agent used its whole step budget: retrying or switching model would
+          // only burn more tokens on the same loop. Stop and tell the user.
+          if (isIterationLimit(msg)) {
+            const error = `The agent reached its step limit without finishing (${model}). Accepted changes are kept; use Revert run to undo them, or send a more specific follow-up.`;
+            cb.onStatus({ phase: "error", model, message: error, sessionId });
+            return { sessionId: sessionId ?? "", status: "error", output: "", model, error, fellBack };
+          }
           const transient = isTransient(msg);
           // If the failed turn already did work (tool calls), don't replay the request; ask to continue.
           if (progressed) input = `The previous attempt stopped with an error (${msg.slice(0, 200)}). Continue the task from where it stopped; do not redo changes that were already accepted.`;
@@ -339,7 +346,12 @@ function safeJson(s: string): Record<string, unknown> {
   }
 }
 
+export function isIterationLimit(msg: string): boolean {
+  return /iteration limit/i.test(msg);
+}
+
 export function isTransient(msg: string): boolean {
+  if (isIterationLimit(msg)) return false; // the agent looped: more attempts won't help
   if (/\((401|403)\)|invalid.*(api)?.?key|unauthori[sz]ed|permission denied|API key not valid/i.test(msg)) return false; // auth: retrying won't help
   if (/\(404\)|does not exist|not found/i.test(msg)) return false; // wrong model id: retrying won't help
   if (/per ?day|daily|requests_per_day|insufficient.?(quota|balance)|billing/i.test(msg)) return false; // daily quota: won't recover in seconds

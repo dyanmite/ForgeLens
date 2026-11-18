@@ -151,6 +151,7 @@ test("model error classification", () => {
   assert.equal(core.isTransient("[Model Error] Request failed (401): invalid api key"), false);
   assert.equal(core.isTransient("[Model Error] Request failed (404): model does not exist"), false);
   assert.equal(core.isTransient("connect ECONNREFUSED 127.0.0.1:9"), true);
+  assert.equal(core.isTransient("You have reached iteration limit of 60, please request again"), false);
   assert.equal(core.isTransient("[Model Error] Request failed (503): high demand"), true);
   assert.equal(core.isTransient("(429): Generate content requests per day limit exceeded on Free Tier"), false);
 });
