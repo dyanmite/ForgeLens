@@ -1,0 +1,7 @@
+{
+  "//": "Task C (resilience) demo settings. Run `node scripts/setup-task-c.cjs` once to register the unreachable provider in TrueForge, then use these settings and repeat Task A.",
+  "forgelens.models": [
+    "unreachable/broken-model",
+    "google-gemini/gemini-3-5-flash-lite"
+  ]
+}

@@ -342,6 +342,7 @@ function safeJson(s: string): Record<string, unknown> {
 export function isTransient(msg: string): boolean {
   if (/\((401|403)\)|invalid.*(api)?.?key|unauthori[sz]ed|permission denied|API key not valid/i.test(msg)) return false; // auth: retrying won't help
   if (/\(404\)|does not exist|not found/i.test(msg)) return false; // wrong model id: retrying won't help
+  if (/per ?day|daily|requests_per_day|insufficient.?(quota|balance)|billing/i.test(msg)) return false; // daily quota: won't recover in seconds
   // Everything else (connection refused, DNS, timeouts, 429, 5xx, dropped streams,
   // unknown provider errors) is worth a retry with backoff before falling back.
   return true;

@@ -1,0 +1,17 @@
+{
+  "//": "Example ForgeLens settings. Copy into .vscode/settings.json of the repo you work on (or your user settings). No API keys go here: providers and keys are configured inside TrueForge (Settings -> Models).",
+
+  "forgelens.trueforgeUrl": "http://localhost:8790",
+
+  "//models": "provider/model names as TrueForge lists them. First = primary, the rest = automatic fallbacks in order.",
+  "forgelens.models": [
+    "google-gemini/gemini-3-5-flash",
+    "google-gemini/gemini-3-5-flash-lite",
+    "groq/openai-gpt-oss-120b"
+  ],
+
+  "forgelens.retriesPerModel": 2,
+  "forgelens.contextBudgetTokens": 6000,
+  "forgelens.mcpPort": 7391,
+  "forgelens.saveOnAccept": true
+}
