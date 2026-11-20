@@ -24,8 +24,8 @@
 <body>
 
 <h1>ForgeLens: an editor-native coding agent on TrueForge</h1>
-<p class="sub">TrueFoundry Forge-a-thon, Techfest IIT Bombay 2026 · Round 1 · Team ID <span class="todo">TM-E5DA4ED3692</span> ·
-Repo <code>github.com/dyanmite/TrueFoundry-TM-E5DA4ED3692</code> · Video <span class="todo">[link]</span></p>
+<p class="sub">TrueFoundry Forge-a-thon, Techfest IIT Bombay 2026 · Round 1 · Team ID TM-E5DA4ED3692 ·
+Repo <code>github.com/dyanmite/TrueFoundry-TM-E5DA4ED3692</code> · Video <a href="https://drive.google.com/drive/folders/10HFwfjKNWV2evrGeN6_MZfSyY4b_TSfI">Google Drive (3:58)</a></p>
 
 <h2>1. Team</h2>
 <table>
@@ -112,8 +112,8 @@ Repo <code>github.com/dyanmite/TrueFoundry-TM-E5DA4ED3692</code> · Video <span 
 <h2>5. Model setup</h2>
 <table>
   <tr><th style="width:36%">Model (configured in TrueForge)</th><th style="width:15%">Role</th><th>Where it ran · approximate cost</th></tr>
-  <tr><td><code>google-gemini/gemini-3-5-flash</code></td><td>Primary</td><td>Google AI Studio API · <span class="todo">[cost]</span></td></tr>
-  <tr><td><code>google-gemini/gemini-3-5-flash-lite</code></td><td>Fallback 1</td><td>Google AI Studio API, separate quota · free tier, $0</td></tr>
+  <tr><td><code>google-gemini/gemini-3-5-flash</code></td><td>Primary</td><td>Google AI Studio API, paid Tier 1 · $1.50 in / $9.00 out per 1M tokens</td></tr>
+  <tr><td><code>google-gemini/gemini-3-5-flash-lite</code></td><td>Fallback 1</td><td>Google AI Studio API, same project · $0.30 in / $2.50 out per 1M tokens</td></tr>
   <tr><td><code>groq/openai-gpt-oss-120b</code></td><td>Fallback 2</td><td>Groq, through a custom OpenAI-compatible provider · free tier, $0</td></tr>
   <tr><td><code>unreachable/broken-model</code></td><td>Task C only</td><td>Custom provider at <code>127.0.0.1:59999</code>, a closed port that gives a real <code>ECONNREFUSED</code></td></tr>
 </table>
@@ -125,19 +125,19 @@ Repo <code>github.com/dyanmite/TrueFoundry-TM-E5DA4ED3692</code> · Video <span 
   <li>After retries, ForgeLens falls back to the next model in the same session.</li>
   <li>All of this is async, so the editor never blocks.</li>
 </ul>
-<p>Settings: the agent runs at temperature 0.2 with 8k max output, and inline edit at temperature 0 with 4k. Total spend for development and recording: <span class="todo">[₹/$]</span>.</p>
+<p>Settings: the agent runs at temperature 0.2 with 8k max output, and inline edit at temperature 0 with 4k. Total Gemini spend for development and recording was small: an estimate of under US$5, not an exact billed figure. Groq was used on its free tier.</p>
 
 <h2>6. Scorecard</h2>
 <table>
   <tr><th style="width:15%">Criterion</th><th style="width:9%">Video</th><th>Claim (what is shown at that time)</th></tr>
-  <tr><td>A1 Inline edit</td><td class="todo">[m:ss]</td><td>Task A rewrite appears as an in-editor diff with Accept/Reject on <i>each</i> hunk. Verified by <code>FLASK_DEBUG=off</code> printing <code>False</code>.</td></tr>
-  <tr><td>A2 Agent mode</td><td class="todo">[m:ss]</td><td>Task B edits <code>cli.py</code>, <code>tests/test_cli.py</code> and <code>docs/cli.rst</code>, none of them named. Verified by passing pytest and <code>flask config</code> masking secrets.</td></tr>
-  <tr><td>A3 Streaming &amp; cancel</td><td class="todo">[m:ss]</td><td>Tokens stream live. Esc mid-generation stops the turn at once, and <code>git status</code> stays clean.</td></tr>
-  <tr><td>B1 Context</td><td class="todo">[m:ss]</td><td>The Context ledger shows the files chosen for Task B, the reason for each, and the 6,000-token budget bar.</td></tr>
-  <tr><td>B2 Diff safety</td><td class="todo">[m:ss]</td><td>Each Task B hunk is reviewed and accepted on its own card, with nothing written before acceptance. In Task A, <b>Undo last</b> reverts an applied change and <code>git status</code> is clean.</td></tr>
-  <tr><td>B3 Resilience</td><td class="todo">[m:ss]</td><td>Task C: the broken endpoint retries, then falls back automatically to the second model. The editor stays usable and <code>git status</code> is clean.</td></tr>
-  <tr><td>B4 TrueForge depth</td><td class="todo">[m:ss]</td><td>The TrueForge session page shows turns, MCP tool calls, approvals and the <code>explorer</code> sub-agent thread.</td></tr>
-  <tr><td>C1 Video</td><td class="todo">[m:ss]</td><td>Tasks A, B and C in order, each followed by its verification on screen.</td></tr>
+  <tr><td>A1 Inline edit</td><td>0:32–1:06</td><td>Task A rewrite appears as an in-editor diff with Accept/Reject on <i>each</i> hunk. Verified by <code>FLASK_DEBUG=off</code> printing <code>False</code>.</td></tr>
+  <tr><td>A2 Agent mode</td><td>1:07–3:23</td><td>Task B edits <code>cli.py</code>, <code>tests/test_cli.py</code> and <code>docs/cli.rst</code>, none of them named. Verified by passing pytest and <code>flask config</code> masking secrets.</td></tr>
+  <tr><td>A3 Streaming &amp; cancel</td><td>0:11–0:31</td><td>Tokens stream live. Esc mid-generation stops the turn at once, and <code>git status</code> stays clean.</td></tr>
+  <tr><td>B1 Context</td><td>1:07–3:23</td><td>The Context ledger shows the files chosen for Task B, the reason for each, and the 6,000-token budget bar.</td></tr>
+  <tr><td>B2 Diff safety</td><td>1:07–3:23; 0:32–1:06</td><td>Each Task B hunk is reviewed and accepted on its own card, with nothing written before acceptance. In Task A, <b>Undo last</b> reverts an applied change and <code>git status</code> is clean.</td></tr>
+  <tr><td>B3 Resilience</td><td>3:24–3:58</td><td>Task C: the broken endpoint retries, then falls back automatically to the second model. The editor stays usable and <code>git status</code> is clean.</td></tr>
+  <tr><td>B4 TrueForge depth</td><td>1:07–3:23</td><td>The TrueForge session page shows turns, MCP tool calls, approvals and the <code>explorer</code> sub-agent thread.</td></tr>
+  <tr><td>C1 Video</td><td>0:00–3:58</td><td>Tasks A, B and C in order, each followed by its verification on screen.</td></tr>
   <tr><td>C2 Write-up</td><td>—</td><td>This document: architecture, context strategy, model setup, timestamped scorecard and limitations.</td></tr>
 </table>
 

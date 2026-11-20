@@ -7,6 +7,8 @@ ForgeLens finds the right code in repositories larger than a context window, mak
 
 | | |
 |---|---|
+| **Demo video** | [Google Drive, 3:58](https://drive.google.com/drive/folders/10HFwfjKNWV2evrGeN6_MZfSyY4b_TSfI) |
+| **Write-up** | [`docs/ForgeLens-writeup.pdf`](docs/ForgeLens-writeup.pdf) |
 | **Starting point** | From scratch. No fork. Libraries only (see `package.json`). |
 | **Agent loop** | TrueForge, local mode. The extension never calls a model provider. |
 | **Agent definitions** | [`agents/forgelens-agent.json`](agents/forgelens-agent.json) (agent mode), [`agents/forgelens-inline.json`](agents/forgelens-inline.json) (inline edit) |
